@@ -82,6 +82,8 @@ Once the liblsarelayx DLL has been loaded into lsass, currently you cannot unloa
 
 Since the LSA plugin is not actually a genuine plugin, there are plans to implement a reflective loader inside the plugin which can then be stopped and started at will but that’s an exercise for another day.
 
+Development was performed on Windows 10 and Server 2016.  A quick test was performed on Windows Server 2012 R2 which worked, but the calculation of offsets for hooking can fail on 2012 (this can be provided manually using the `lookuppackage-hint=`, get it wrong and Windows will reboot).  No testing has been performed on anything below Windows 10 on the desktop side and nothing tested on Server 2019 at all.
+
 ## !!WARNING!!
 
 liblsarelayx.dll will be loaded inside the critical lsass.exe process.  If liblsarelayx.dll has any bugs that lead to crashing lsass.exe, the host **WILL** reboot after 60s.  Whilst best efforts have been made to write bug free code, I can't promise anything.  Don't come crying to me that you took your fortune 500 client down for crashing the busy file server after using lsarelayx.
