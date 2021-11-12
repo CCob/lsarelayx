@@ -1,0 +1,211 @@
+
+#define WIN32_NO_STATUS
+#define SECURITY_WIN32
+#define UNICODE
+
+#include <windows.h>
+#include <sspi.h>
+#include <ntsecapi.h>
+#include <ntsecpkg.h>
+#include <winternl.h>
+#include <string>
+#include <vector>
+#include <system_error>
+#include <map>
+#include <sddl.h>
+#include <ntdef.h>
+
+
+#include "lsarelayx.hxx"
+#include "pipe.hxx"
+#include "commands.h"
+#include "relaycontext.h"
+
+
+extern "C" NTSTATUS SpLsaModeInitialize(ULONG LsaVersion, PULONG PackageVersion, PSECPKG_FUNCTION_TABLE *ppTables, PULONG pcTables);
+
+win32_handle CreateTokenFromUserInfo(const LUID& sourceLUID, const UserInfo& userInfo);
+
+extern PLSA_SECPKG_FUNCTION_TABLE g_FunctionTable;
+extern MessageExchangeFactoryPtr g_messageExchangeFactory;;
+
+MessageBuffer ntlmType1 = {
+    0x4E, 0x54, 0x4C, 0x4D, 0x53, 0x53, 0x50, 0x00, 0x01, 0x00, 0x00, 0x00,
+    0x07, 0x32, 0x00, 0x00, 0x06, 0x00, 0x06, 0x00, 0x33, 0x00, 0x00, 0x00,
+    0x0B, 0x00, 0x0B, 0x00, 0x28, 0x00, 0x00, 0x00, 0x05, 0x00, 0x93, 0x08,
+    0x00, 0x00, 0x00, 0x0F, 0x57, 0x4F, 0x52, 0x4B, 0x53, 0x54, 0x41, 0x54,
+    0x49, 0x4F, 0x4E, 0x44, 0x4F, 0x4D, 0x41, 0x49, 0x4E
+};
+
+MessageBuffer ntlmType2 = {
+    0x4E, 0x54, 0x4C, 0x4D, 0x53, 0x53, 0x50, 0x00, 0x02, 0x00, 0x00, 0x00,
+    0x0C, 0x00, 0x0C, 0x00, 0x30, 0x00, 0x00, 0x00, 0x01, 0x02, 0x81, 0x00,
+    0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x62, 0x00, 0x62, 0x00, 0x3C, 0x00, 0x00, 0x00,
+    0x44, 0x00, 0x4F, 0x00, 0x4D, 0x00, 0x41, 0x00, 0x49, 0x00, 0x4E, 0x00,
+    0x02, 0x00, 0x0C, 0x00, 0x44, 0x00, 0x4F, 0x00, 0x4D, 0x00, 0x41, 0x00,
+    0x49, 0x00, 0x4E, 0x00, 0x01, 0x00, 0x0C, 0x00, 0x53, 0x00, 0x45, 0x00,
+    0x52, 0x00, 0x56, 0x00, 0x45, 0x00, 0x52, 0x00, 0x04, 0x00, 0x14, 0x00,
+    0x64, 0x00, 0x6F, 0x00, 0x6D, 0x00, 0x61, 0x00, 0x69, 0x00, 0x6E, 0x00,
+    0x2E, 0x00, 0x63, 0x00, 0x6F, 0x00, 0x6D, 0x00, 0x03, 0x00, 0x22, 0x00,
+    0x73, 0x00, 0x65, 0x00, 0x72, 0x00, 0x76, 0x00, 0x65, 0x00, 0x72, 0x00,
+    0x2E, 0x00, 0x64, 0x00, 0x6F, 0x00, 0x6D, 0x00, 0x61, 0x00, 0x69, 0x00,
+    0x6E, 0x00, 0x2E, 0x00, 0x63, 0x00, 0x6F, 0x00, 0x6D, 0x00, 0x00, 0x00,
+    0x00, 0x00
+};
+
+MessageBuffer ntlmType3 = {
+    0x4E, 0x54, 0x4C, 0x4D, 0x53, 0x53, 0x50, 0x00, 0x03, 0x00, 0x00, 0x00,
+    0x18, 0x00, 0x18, 0x00, 0x6A, 0x00, 0x00, 0x00, 0x18, 0x00, 0x18, 0x00,
+    0x82, 0x00, 0x00, 0x00, 0x0C, 0x00, 0x0C, 0x00, 0x40, 0x00, 0x00, 0x00,
+    0x08, 0x00, 0x08, 0x00, 0x4C, 0x00, 0x00, 0x00, 0x16, 0x00, 0x16, 0x00,
+    0x54, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x9A, 0x00, 0x00, 0x00,
+    0x01, 0x02, 0x00, 0x00, 0x44, 0x00, 0x4F, 0x00, 0x4D, 0x00, 0x41, 0x00,
+    0x49, 0x00, 0x4E, 0x00, 0x75, 0x00, 0x73, 0x00, 0x65, 0x00, 0x72, 0x00,
+    0x57, 0x00, 0x4F, 0x00, 0x52, 0x00, 0x4B, 0x00, 0x53, 0x00, 0x54, 0x00,
+    0x41, 0x00, 0x54, 0x00, 0x49, 0x00, 0x4F, 0x00, 0x4E, 0x00, 0xC3, 0x37,
+    0xCD, 0x5C, 0xBD, 0x44, 0xFC, 0x97, 0x82, 0xA6, 0x67, 0xAF, 0x6D, 0x42,
+    0x7C, 0x6D, 0xE6, 0x7C, 0x20, 0xC2, 0xD3, 0xE7, 0x7C, 0x56, 0x25, 0xA9,
+    0x8C, 0x1C, 0x31, 0xE8, 0x18, 0x47, 0x46, 0x6B, 0x29, 0xB2, 0xDF, 0x46,
+    0x80, 0xF3, 0x99, 0x58, 0xFB, 0x8C, 0x21, 0x3A, 0x9C, 0xC6
+};
+
+extern "C" NTSYSAPI NTSTATUS NtAllocateLocallyUniqueId(PLUID Luid);
+
+extern "C" NTSYSAPI NTSTATUS NtCreateToken(
+ OUT PHANDLE             TokenHandle,
+ IN ACCESS_MASK          DesiredAccess,
+ IN POBJECT_ATTRIBUTES   ObjectAttributes,
+ IN TOKEN_TYPE           TokenType,
+ IN PLUID                AuthenticationId,
+ IN PLARGE_INTEGER       ExpirationTime,
+ IN PTOKEN_USER          TokenUser,
+ IN PTOKEN_GROUPS        TokenGroups,
+ IN PTOKEN_PRIVILEGES    TokenPrivileges,
+ IN PTOKEN_OWNER         TokenOwner,
+ IN PTOKEN_PRIMARY_GROUP TokenPrimaryGroup,
+ IN PTOKEN_DEFAULT_DACL  TokenDefaultDacl,
+ IN PTOKEN_SOURCE        TokenSource
+);
+
+
+BOOL SetPrivilege(
+    HANDLE hToken,          // access token handle
+    LPCTSTR lpszPrivilege,  // name of privilege to enable/disable
+    BOOL bEnablePrivilege   // to enable or disable privilege
+    )
+{
+    TOKEN_PRIVILEGES tp;
+    LUID luid;
+
+    if ( !LookupPrivilegeValue(
+            NULL,            // lookup privilege on local system
+            lpszPrivilege,   // privilege to lookup
+            &luid ) )        // receives LUID of privilege
+    {
+        printf("LookupPrivilegeValue error: %u\n", GetLastError() );
+        return FALSE;
+    }
+
+    tp.PrivilegeCount = 1;
+    tp.Privileges[0].Luid = luid;
+    if (bEnablePrivilege)
+        tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+    else
+        tp.Privileges[0].Attributes = 0;
+
+    // Enable the privilege or disable all privileges.
+
+    if ( !AdjustTokenPrivileges(
+           hToken,
+           FALSE,
+           &tp,
+           sizeof(TOKEN_PRIVILEGES),
+           (PTOKEN_PRIVILEGES) NULL,
+           (PDWORD) NULL) )
+    {
+          printf("AdjustTokenPrivileges error: %u\n", GetLastError() );
+          return FALSE;
+    }
+
+    if (GetLastError() == ERROR_NOT_ALL_ASSIGNED)
+
+    {
+          printf("The token does not have the specified privilege. \n");
+          return FALSE;
+    }
+
+    return TRUE;
+}
+
+
+NTSTATUS LsaCreateTokenEx(
+    PLUID LogonId,
+    PTOKEN_SOURCE TokenSource,
+    SECURITY_LOGON_TYPE LogonType,
+    SECURITY_IMPERSONATION_LEVEL ImpersonationLevel,
+    LSA_TOKEN_INFORMATION_TYPE TokenInformationType,
+    PVOID TokenInformation,
+    PTOKEN_GROUPS TokenGroups,
+    PUNICODE_STRING Workstation,
+    PUNICODE_STRING ProfilePath,
+    PVOID SessionInformation,
+    SECPKG_SESSIONINFO_TYPE SessionInformationType,
+    PHANDLE Token,
+    PNTSTATUS SubStatus
+        ){
+
+    OBJECT_ATTRIBUTES oa;
+    InitializeObjectAttributes(&oa, nullptr, 0, nullptr, nullptr);
+
+    LSA_TOKEN_INFORMATION_V2* lsaToken = (LSA_TOKEN_INFORMATION_V2*)TokenInformation;
+
+    NTSTATUS result = NtCreateToken(Token, TOKEN_ALL_ACCESS, &oa, TokenPrimary, LogonId, &lsaToken->ExpirationTime, &lsaToken->User,
+                  lsaToken->Groups, lsaToken->Privileges, &lsaToken->Owner, &lsaToken->PrimaryGroup, nullptr, TokenSource);
+
+    return result;
+
+}
+
+
+int main(int argc, char** argv){
+
+    HANDLE hToken = nullptr;
+    TOKEN_STATISTICS tokenStats;
+    DWORD retLen = 0;
+    OpenProcessToken(GetCurrentProcess(),TOKEN_ALL_ACCESS, &hToken);
+
+    GetTokenInformation(hToken, TokenStatistics, &tokenStats,sizeof(tokenStats), &retLen);
+
+    SetPrivilege(hToken, L"SeCreateTokenPrivilege", TRUE);
+    CloseHandle(hToken);
+
+    g_FunctionTable = new LSA_SECPKG_FUNCTION_TABLE();
+    g_FunctionTable->AllocateLsaHeap = (PLSA_ALLOCATE_LSA_HEAP)malloc;
+    g_FunctionTable->FreeLsaHeap = (PLSA_FREE_LSA_HEAP)free;
+    g_FunctionTable->CreateLogonSession = NtAllocateLocallyUniqueId;
+    g_FunctionTable->CreateTokenEx = LsaCreateTokenEx;
+
+    ULONG pVersion;
+    ULONG pcTables;
+    PSECPKG_FUNCTION_TABLE ppTables;
+
+    LoadLibraryA("msv1_0.dll");
+    LoadLibraryA("lsasrv.dll");
+
+    SpLsaModeInitialize(1, &pVersion, &ppTables, &pcTables);
+
+    RelayContext ctx(g_messageExchangeFactory, true, 4);
+
+    auto relayResponse = ctx.ForwardNegotiateMessage(0,ntlmType1);
+
+    relayResponse = ctx.ForwardChallengeMessage(0,ntlmType2);
+
+    auto relayFinshed = ctx.ForwardAuthenticateMessage(0,ntlmType3);
+
+    CreateTokenFromUserInfo(tokenStats.AuthenticationId, relayFinshed.UserInfo);
+
+    getchar();
+
+    return 0;
+}
