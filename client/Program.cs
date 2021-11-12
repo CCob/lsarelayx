@@ -560,15 +560,22 @@ namespace ntlmrelaynet {
             }
  
             SECURITY_PACKAGE_OPTIONS spo = new SECURITY_PACKAGE_OPTIONS();
+          
             string lsaDllPath = new FileInfo("liblsarelayx.dll").FullName;
 
-            Console.WriteLine($"[=] Attempting to load LSA plugin {lsaDllPath}");
+            if (File.Exists(lsaDllPath)) {
+                Console.WriteLine($"[=] Attempting to load LSA plugin {lsaDllPath}");
+                uint result = AddSecurityPackage(lsaDllPath, spo);
 
-            uint result = AddSecurityPackage(lsaDllPath, spo);
+                if (result != 0) {
+                    Console.WriteLine($"[!] Failed to add LSA security package with error 0x{result:x}");
+                }
 
-            if(result != 0) {
-                Console.WriteLine($"[!] Failed to add LSA security package with error 0x{result:x}");
+            } else {
+                Console.WriteLine($"[!] {lsaDllPath} not found");
+
             }
+
 
             Console.ReadLine();       
         }

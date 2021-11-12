@@ -177,6 +177,8 @@ NTSTATUS NTAPI SpAcceptCredentials(SECURITY_LOGON_TYPE, PUNICODE_STRING, PSECPKG
 
 extern "C" NTSTATUS SpLsaModeInitialize(ULONG, PULONG PackageVersion, PSECPKG_FUNCTION_TABLE *ppTables, PULONG pcTables){
 
+    DBGPRINT(L"lsarelayx Starting....",0);
+
     memset(&SecurityPackageFunctionTable, 0, sizeof(SecurityPackageFunctionTable));
     SecurityPackageFunctionTable.Initialize = SpInitialize;
     SecurityPackageFunctionTable.Shutdown = SpShutDown;
