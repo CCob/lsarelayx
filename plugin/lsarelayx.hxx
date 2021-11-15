@@ -1,8 +1,6 @@
 #ifndef LSARELAYX_HXX
 #define LSARELAYX_HXX
 
-#define _DEBUG
-
 #define WIN32_NO_STATUS
 #define SECURITY_WIN32
 #define UNICODE

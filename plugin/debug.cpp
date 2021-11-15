@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <strsafe.h>
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 void _DBGPRINT( const char* kwszFunction, int iLineNumber, const wchar_t* kwszDebugFormatString, ... ) \
 {
     INT cbFormatString = 0;
@@ -34,6 +34,4 @@ void _DBGPRINT( const char* kwszFunction, int iLineNumber, const wchar_t* kwszDe
 
     va_end( args );
 }
-#else
-#define DBGPRINT( kwszDebugFormatString, ... ) ;;
 #endif
