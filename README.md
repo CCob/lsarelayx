@@ -97,13 +97,13 @@ If you have docker installed, this is the quickest option. It utilises the `ccob
 #### Docker on Windows (Powershell)
 
 ```shell
-docker run --rm -it -v $env:pwd\:/root/lsarelayx ccob/windows_cross:latest /bin/bash -c "cd /root/lsarelayx; mkdir build; cd build; cmake -DCMAKE_INSTALL_PREFIX=/root/lsarelayx/dist -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TOOLCHAIN_FILE=../toolchain/Linux-mingw64.cmake ..; cmake --build .; cmake --install ."
+docker run --rm -it -v $env:pwd\:/root/lsarelayx ccob/windows_cross:latest /bin/bash -c "cd /root/lsarelayx; mkdir build; cd build; cmake -DCMAKE_INSTALL_PREFIX=/root/lsarelayx/dist -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TOOLCHAIN_FILE=../toolchain/Linux-mingw64.cmake ..; --build . --target install/strip"
 ```
 
 #### Docker on Linux
 
 ```shell
-docker run --rm -it -v $(pwd):/root/lsarelayx ccob/windows_cross:latest /bin/bash -c "cd /root/lsarelayx; mkdir build; cd build; cmake -DCMAKE_INSTALL_PREFIX=/root/lsarelayx/dist -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TOOLCHAIN_FILE=../toolchain/Linux-mingw64.cmake ..; cmake --build .; cmake --install ."
+docker run --rm -it -v $(pwd):/root/lsarelayx ccob/windows_cross:latest /bin/bash -c "cd /root/lsarelayx; mkdir build; cd build; cmake -DCMAKE_INSTALL_PREFIX=/root/lsarelayx/dist -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TOOLCHAIN_FILE=../toolchain/Linux-mingw64.cmake ..; cmake --build . --target install/strip"
 ```
 
 ### Linux
@@ -114,8 +114,7 @@ On Linux we utilise a CMake toolchain along with the MinGW compiler.  These need
 mkdir build
 cd build
 cmake -DCMAKE_INSTALL_PREFIX=$PWD/dist -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TOOLCHAIN_FILE=../toolchain/Linux-mingw64.cmake ..
-cmake --build .
-cmake --install .
+cmake --build . --target install/strip
 ```
 
 ### Windows (Powershell)
@@ -126,6 +125,5 @@ Windows will require a full CMake, MinGW and Visual Studio setup before even att
 mkdir build
 cd build
 cmake -DCMAKE_INSTALL_PREFIX=$PWD/dist -DCMAKE_BUILD_TYPE=MinSizeRel -G "MinGW Makefiles" ..
-cmake --build .
-cmake --install .
+cmake --build . --target install/strip
 ```
