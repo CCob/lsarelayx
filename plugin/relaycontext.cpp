@@ -56,10 +56,10 @@ MessageBuffer RelayContext::SendCommand(const Command& command){
     size_t writtenSize = 0;
 
     if(command.GetCommandId() == CommandType::RelayNTLM){
-        const NtlmRelayCommand& relayCommand = dynamic_cast<const NtlmRelayCommand&>(command);
+        const NtlmRelayCommand& relayCommand = (const NtlmRelayCommand&)(command);
         writtenSize = bitsery::quickSerialization(ctx, Writer{buffer}, relayCommand);
     }else if(command.GetCommandId() == CommandType::NegotiateRequest){
-        const NegotiateCommand& negCommand = dynamic_cast<const NegotiateCommand&>(command);
+        const NegotiateCommand& negCommand = (const NegotiateCommand&)(command);
         writtenSize = bitsery::quickSerialization(ctx, Writer{buffer}, negCommand);
     }else{
         writtenSize = bitsery::quickSerialization(ctx, Writer{buffer}, command);

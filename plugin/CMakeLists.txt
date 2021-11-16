@@ -19,6 +19,8 @@ add_library(lsarelayx_static STATIC
     minhook/hde/hde32.c
     minhook/hde/hde64.c)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
+
 target_include_directories(lsarelayx_static PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 add_library(lsarelayx SHARED dllmain.cpp lsarelayx.def)
