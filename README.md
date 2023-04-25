@@ -26,9 +26,7 @@ lsarelayx.exe is the main console application used to load the custom LSA authen
 
 ### RAW ntlmrelayx module
 
-impacket's ntlmrelayx has implemented a significant amount of work creating relay attacks and will continue to improve and add further attack in the future.  To take advantage of this in favour of reimplementing attacks directly within lsarelayx, a new ntlmrelayx server module was created called RAW.  Currently there is a [PR open on GitHub](https://github.com/SecureAuthCorp/impacket/pull/1190) that implements the RAW server module.  The RAW server module is protocol agnostic and is designed to accept the raw NTLM messages directly from 3rd party software like lsarelayx.
-
-Until the PR is merged into the mainline impacket repo, you can use [this version](https://github.com/CCob/impacket)
+impacket's ntlmrelayx has implemented a significant amount of work creating relay attacks and will continue to improve and add further attack in the future.  To take advantage of this in favour of reimplementing attacks directly within lsarelayx, a new ntlmrelayx server module was created called RAW. The RAW server module is protocol agnostic and is designed to accept the raw NTLM messages directly from 3rd party software like lsarelayx.
 
 ## Usage
 
