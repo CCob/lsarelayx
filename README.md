@@ -97,7 +97,7 @@ If you have docker installed, this is the quickest option. It utilises the `ccob
 #### Docker on Windows (Powershell)
 
 ```shell
-docker run --rm -it -v $env:pwd\:/root/lsarelayx ccob/windows_cross:latest /bin/bash -c "cd /root/lsarelayx; mkdir build; cd build; cmake -DCMAKE_INSTALL_PREFIX=/root/lsarelayx/dist -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TOOLCHAIN_FILE=../toolchain/Linux-mingw64.cmake ..; --build . --target install/strip"
+docker run --rm -it -v $pwd\:/root/lsarelayx ccob/windows_cross:latest /bin/bash -c "cd /root/lsarelayx; mkdir build; cd build; cmake -DCMAKE_INSTALL_PREFIX=/root/lsarelayx/dist -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TOOLCHAIN_FILE=../toolchain/Linux-mingw64.cmake ..; cmake --build . --target install/strip"
 ```
 
 #### Docker on Linux
@@ -108,7 +108,7 @@ docker run --rm -it -v $(pwd):/root/lsarelayx ccob/windows_cross:latest /bin/bas
 
 ### Linux
 
-On Linux we utilise a CMake toolchain along with the MinGW compiler.  These need to be installed before hand.  For the managed component, please make sure the dotnet command line tool is also installed from .NET core
+On Linux we utilise a CMake toolchain along with the MinGW compiler.  These need to be installed before hand.  For the managed component, please make sure the dotnet command line tool is also installed from .NET core (for Ubuntu, something like `sudo apt install dotnet6`)
 
 ```shell
 mkdir build
